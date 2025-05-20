@@ -30,11 +30,10 @@ int isNumber(const char *str) {     //control the variable for is it integer
     return (*endptr == '\0');
 }
 
-void stringType(char *string){
-    char *type;
+void keywordType(char *type){
     for (int i = 0; i < 6; i++) {
         if (strcmp(type, keywords[i]) == 0) {
-            printf("Keyword ( '%s' )\n", type);
+            printf("Keyword ( %s )\n", type);
             return;
         }
     }
@@ -55,42 +54,45 @@ int main() {
     }
 
     char line[1024];
+    int skipMode=0;
     while (fgets(line, sizeof(line), dosya)) {
         // Satırdaki çok karakterli ayırıcıları boşlukla ayır
         replaceSeperator(line);
 
-        // Satırı boşluklara göre parçala
         char *token = strtok(line, " \t\n");
         while (token != NULL) {
 
-            int is_sep = 0;
-            for (int i = 0; i < sep_count; i++) {
-                if (strcmp(token, ";") == 0) {
+            if (strcmp(token, "*") == 0) { // * gelirse ignore ediyoruz
+                skipMode = !skipMode;
+            }
+            else if (!skipMode) {
+                if (strcmp(token, ";") == 0) { //burasi sayesinde ; dan sonra * i okuyabiliyoruz
                     printf("EndOfLine\n");
-                    token = strtok(NULL, " \t\n");
-                    is_sep = 1;
-                    break;
                 }
-    
-                if (strcmp(token, separators[i]) == 0 && strcmp(token, "*") != 0 && strcmp(token, "\"") != 0) {
-                    printf("Operator ( '%s' )\n", token);
-                    is_sep = 1;
-                    break;
+                else {
+                    int isOperator = 0;
+                    for (int i = 0; i < sep_count; i++) {
+                        if (strcmp(token, separators[i]) == 0 && strcmp(token, "*") != 0 && strcmp(token, "\"") != 0) { 
+                            printf("Operator ( '%s' )\n", token);
+                            isOperator = 1;
+                            break;
+                        }
+                    }
+        
+                    if (!isOperator) {
+                        if (isNumber(token)) {
+                            printf("IntConstant ( '%s' )\n", token);
+                        } else {
+                            keywordType(token);
+                        }
+                    }
                 }
-
             }
-
-            if (!is_sep) {
-                if (isNumber(token)) {
-                    printf("IntConstant ( '%s' )\n", token);
-
-                } else {
-                    stringType(token);
-                }
-            }
-
+        
+            // BU SATIR her durumda en sonda çağrılır
             token = strtok(NULL, " \t\n");
         }
+        
     }
 
     fclose(dosya);

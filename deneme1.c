@@ -3,8 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 
-const char* separators[] = {":=", ",-=", "+=",";","*","\""}; //line seperator operators
-const int sep_count = 6;
+const char* separators[] = {":=","-=", "+=",";","*","“","”"}; //line seperator operators
+const int sep_count = 7;
 const char* keywords[]={"number","repeat","times","write","and","newline"}; //keywords names
 
 
@@ -30,19 +30,19 @@ int isNumber(const char *str) {     //control the variable for is it integer
     return (*endptr == '\0');
 }
 
-void keywordType(char *type){
+void keywordType(char *type, FILE *outputFile){
     for (int i = 0; i < 6; i++) {
         if (strcmp(type, keywords[i]) == 0) {
-            printf("Keyword ( %s )\n", type);
+            fprintf(outputFile,"Keyword ( %s )\n", type);
             return;
         }
     }
     if(type[0]=='{'){
-        printf("OpenBlock\n");
+        fprintf(outputFile,"OpenBlock\n");
     }else if(type[0]=='}'){
-        printf("CloseBlock\n");
+        fprintf(outputFile,"CloseBlock\n");
     }else{
-        printf("Identifier ( '%s' )\n", type);
+        fprintf(outputFile,"Identifier ( %s )\n", type);
     }
 }
 
@@ -52,9 +52,15 @@ int main() {
         printf("Dosya açılamadı\n");
         return 1;
     }
+    FILE *outputFile = fopen("output1.lx", "w");
+    if (!outputFile) {
+        printf("Dosyası açılamadı\n");
+        return 1;
+    }
 
     char line[1024];
     int skipMode=0;
+    int strSkip=0;
     while (fgets(line, sizeof(line), dosya)) {
         // Satırdaki çok karakterli ayırıcıları boşlukla ayır
         replaceSeperator(line);
@@ -66,14 +72,31 @@ int main() {
                 skipMode = !skipMode;
             }
             else if (!skipMode) {
-                if (strcmp(token, ";") == 0) { //burasi sayesinde ; dan sonra * i okuyabiliyoruz
-                    printf("EndOfLine\n");
+
+                if (strcmp(token, "“") == 0) {
+                    
+                    char strConst[1024] = "";  // string'in parçalarını saklayacağın boş bir char dizisi oluşturmak icin.
+                    token = strtok(NULL, " \t\n"); // İlk tırnaktan sonra gelen ilk kelimeyi tokena ceviriyorsun.
+                    while (token != NULL && strcmp(token, "”") != 0) {
+                        if (strlen(strConst) > 0) strcat(strConst, " "); // Eğer daha önce string'e bir şey eklendiyse, yeni kelimeden önce bir boşluk ekle ki stringler bitişik olmasın.
+                        strcat(strConst, token); // O anki kelimeyi strConst değişkenine ekle.
+                        token = strtok(NULL, " \t\n");
+                    }
+                    if (token != NULL && strcmp(token, "”") == 0) { 
+                        
+                        fprintf(outputFile, "StringConstant ( '%s' )\n", strConst); // yazdirma kismi
+                        token = strtok(NULL, " \t\n"); 
+                        continue; // bir sonraki tokene geç
+                    }
+
+                }else if (strcmp(token, ";") == 0) { //burasi sayesinde ; dan sonra * i okuyabiliyoruz
+                    fprintf(outputFile,"EndOfLine\n");
                 }
                 else {
                     int isOperator = 0;
                     for (int i = 0; i < sep_count; i++) {
-                        if (strcmp(token, separators[i]) == 0 && strcmp(token, "*") != 0 && strcmp(token, "\"") != 0) { 
-                            printf("Operator ( '%s' )\n", token);
+                        if (strcmp(token, separators[i]) == 0 && strcmp(token, "*") != 0 && strcmp(token, "“") != 0 && strcmp(token, "”") != 0) { 
+                            fprintf(outputFile,"Operator ( '%s' )\n", token);
                             isOperator = 1;
                             break;
                         }
@@ -81,9 +104,9 @@ int main() {
         
                     if (!isOperator) {
                         if (isNumber(token)) {
-                            printf("IntConstant ( '%s' )\n", token);
+                            fprintf(outputFile,"IntConstant ( '%s' )\n", token);
                         } else {
-                            keywordType(token);
+                            keywordType(token,outputFile);
                         }
                     }
                 }
@@ -96,5 +119,6 @@ int main() {
     }
 
     fclose(dosya);
+    fclose(outputFile);
     return 0;
 }

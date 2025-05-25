@@ -26,6 +26,6 @@ Keyword ( write )
 Keyword ( newline )
 Keyword ( and )
 StringConstant ( 'Sum:' )
-Keyword ( and )
+Error on line 8: Undeclared variable 'anr'
 Identifier ( sum )
 EndOfLine

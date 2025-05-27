@@ -10,7 +10,6 @@ int blockCount=0; //block control
 int blockLines[100];
 int blockLineIndex = 0;
 
-
 #define MAX_VARS 100 //kelime dizisi icin max variable sayisi
 char declaredVariables[MAX_VARS][64];
 int varCount = 0;
@@ -20,7 +19,6 @@ void addVariable(const char* var) {
         strcpy(declaredVariables[varCount++], var);
     }
 }
-
 int isDeclared(const char* var) {
     for (int i = 0; i < varCount; i++) {
         if (strcmp(var, declaredVariables[i]) == 0) return 1;
@@ -41,7 +39,6 @@ void replaceSeperator(char *line) {
         }
     }
 }
-
 int isNumber(const char *str) {     //control the variable for is it integer
     char *endptr;
     if (str == NULL || *str == '\0')
@@ -59,8 +56,9 @@ void keywordType(char *type, FILE *outputFile, int lineNumber) {
         if (next && isalpha(next[0])) {
             fprintf(outputFile,"Identifier ( %s )\n", next);
             addVariable(next);
-        } else {
-            fprintf(outputFile,"Error on line %d: Invalid variable declaration after 'number'\n", lineNumber);
+        }else {
+            printf("Error on line %d: Invalid variable declaration after 'number'\n", lineNumber);
+            exit(1);
         }
         return;
     }
@@ -78,7 +76,8 @@ void keywordType(char *type, FILE *outputFile, int lineNumber) {
         blockCount++;
     }else if(type[0]=='}'){
         if (blockCount == 0) {
-            fprintf(outputFile, "Error on line %d: Closing block without opening block!\n", lineNumber);
+            printf( "Error on line %d: Closing block without opening block!\n", lineNumber);
+            exit(1);
         }else {
             blockCount--;
             blockLineIndex--;
@@ -86,7 +85,8 @@ void keywordType(char *type, FILE *outputFile, int lineNumber) {
         }
     }else{
         if (!isDeclared(type)) {
-            fprintf(outputFile, "Error on line %d: Undeclared variable '%s'\n", lineNumber, type);
+            printf("Error on line %d: Undeclared variable '%s'\n", lineNumber, type);
+            exit(1);
         } else {
             fprintf(outputFile,"Identifier ( %s )\n", type);
         }
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Çıkış dosyasının adını üret (.plus yerine .lx)
+    // Çıkış dosyasının adını üretiyoruz (.plus yerine .lx)
     char outputFilename[256];
     strcpy(outputFilename, inputFilename);
     char *dot = strrchr(outputFilename, '.');
@@ -126,14 +126,19 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Geri kalan kod (tokenization vs) burada senin yazdığın şekilde devam ediyor...
     char line[1024];
     int skipMode=0;
+    int strSkip=0;
     
     while (fgets(line, sizeof(line), dosya)) {
         lineControl++;
         replaceSeperator(line);
-
+        if (skipMode) {
+            printf("Error on line %d: Comment block opened with '*' but not closed before line break.\n", lineControl-1);
+            exit(1);}
+        if (strSkip) {
+            printf("Error on line %d: String literal opened with '“' but not closed with '”' before line break.\n", lineControl-1);
+            exit(1);}
         char *token = strtok(line, " \t\n");
         while (token != NULL) {
 
@@ -141,9 +146,7 @@ int main(int argc, char *argv[]) {
                 skipMode = !skipMode;
             }
             else if (!skipMode) {
-
-                if (strcmp(token, "\"") == 0) {   // normal " " isaretine göre ayırıyor 
-                    
+                if (strcmp(token, "\"") == 0) {
                     char strConst[1024] = "";
                     token = strtok(NULL, " \t\n");
                     while (token != NULL && strcmp(token, "\"") != 0) {
@@ -153,9 +156,12 @@ int main(int argc, char *argv[]) {
                     }
                 
                     if (token != NULL && strcmp(token, "\"") == 0) {
-                        fprintf(outputFile,"StringConstant ( '%s' )\n", strConst);
+                        fprintf(outputFile, "StringConstant ( '%s' )\n", strConst);
                         token = strtok(NULL, " \t\n");
                         continue;
+                    } else {
+                        printf("Error on line %d: String literal not closed with '\"'\n", lineControl);
+                        exit(1);
                     }
 
                 }else if (strcmp(token, ";") == 0) { //burasi sayesinde ; dan sonra * i okuyabiliyoruz
@@ -170,7 +176,6 @@ int main(int argc, char *argv[]) {
                             break;
                         }
                     }
-        
                     if (!isOperator) {
                         if (isNumber(token)) {
                             fprintf(outputFile,"IntConstant ( '%s' )\n", token);
@@ -189,7 +194,8 @@ int main(int argc, char *argv[]) {
 
     if(blockCount > 0){
         for (int i = 0; i < blockLineIndex; i++) {
-            fprintf(outputFile,"Error: Unclosed block opened on line %d\n", blockLines[i]);
+            printf("Error: Unclosed block opened on line %d\n", blockLines[i]);
+            exit(1);
     }
 }
     fclose(outputFile);

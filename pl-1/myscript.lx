@@ -17,15 +17,3 @@ Identifier ( size )
 Keyword ( and )
 Keyword ( newline )
 EndOfLine
-Identifier ( sum )
-Operator ( '+=' )
-Identifier ( size )
-EndOfLine
-CloseBlock
-Keyword ( write )
-Keyword ( newline )
-Keyword ( and )
-StringConstant ( 'Sum:' )
-Keyword ( and )
-Identifier ( sum )
-EndOfLine

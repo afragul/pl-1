@@ -10,11 +10,11 @@ int blockCount=0; //block control
 int blockLines[100];
 int blockLineIndex = 0;
 
-#define MAX_VARS 100 //kelime dizisi icin max variable sayisi
+#define MAX_VARS 100 
 char declaredVariables[MAX_VARS][64];
 int varCount = 0;
 
-void addVariable(const char* var) {
+void addVariable(const char* var) { //add variable to declaredVariables array
     if (varCount < MAX_VARS) {
         strcpy(declaredVariables[varCount++], var);
     }
@@ -49,7 +49,7 @@ int isNumber(const char *str) {     //control the variable for is it integer
 
 void keywordType(char *type, FILE *outputFile, int lineNumber) {
 
-    if (strcmp(type, "number") == 0) {
+    if (strcmp(type, "number") == 0) { 
         fprintf(outputFile,"Keyword ( %s )\n", type); 
 
         char* next = strtok(NULL, " \t\n");
@@ -70,7 +70,7 @@ void keywordType(char *type, FILE *outputFile, int lineNumber) {
         }
     }
 
-    if(type[0]=='{'){
+    if(type[0]=='{'){ //block control
         fprintf(outputFile,"OpenBlock\n");
         blockLines[blockLineIndex++] = lineNumber;
         blockCount++;
@@ -85,7 +85,7 @@ void keywordType(char *type, FILE *outputFile, int lineNumber) {
         }
     }else{
         if (!isDeclared(type)) {
-            printf("Error on line %d: Undeclared variable '%s'\n", lineNumber, type);
+            printf("Error on line %d: Undefine variable '%s'\n", lineNumber, type);
             exit(1);
         } else {
             fprintf(outputFile,"Identifier ( %s )\n", type);
@@ -97,52 +97,51 @@ int main(int argc, char *argv[]) {
 
     int lineControl = 0;
     if (argc < 2) {
-        printf("Kullanım: %s <dosya_adı>\n", argv[0]);
+        printf("Usage: %s <dosya_adı>\n", argv[0]);
         return 1;
     }
 
-    // Giriş dosyasını aç
     char inputFilename[256];
     snprintf(inputFilename, sizeof(inputFilename), "%s.plus", argv[1]);
-    FILE *dosya = fopen(inputFilename, "r");
+    FILE *dosya = fopen(inputFilename, "r"); //open file for read 
     if (!dosya) {
-        printf("Dosya açılamadı: %s\n", inputFilename);
+        printf("File can not open! : %s\n", inputFilename);
         return 1;
     }
 
-    // Çıkış dosyasının adını üretiyoruz (.plus yerine .lx)
+    //create output file name 
     char outputFilename[256];
     strcpy(outputFilename, inputFilename);
     char *dot = strrchr(outputFilename, '.');
     if (dot != NULL) {
-        strcpy(dot, ".lx");  // uzantıyı değiştir
+        strcpy(dot, ".lx");  //replace extention with .lx
     } else {
-        strcat(outputFilename, ".lx"); // uzantı yoksa ekle
+        strcat(outputFilename, ".lx"); //add .lx if no extension
     }
 
     FILE *outputFile = fopen(outputFilename, "w");
     if (!outputFile) {
-        printf("Çıkış dosyası açılamadı: %s\n", outputFilename);
+        printf("Output file can not create: %s\n", outputFilename);
         return 1;
     }
 
     char line[1024];
-    int skipMode=0;
-    int strSkip=0;
+    int skipMode=0; //for comment line
+    int strSkip=0; //for string control
     
     while (fgets(line, sizeof(line), dosya)) {
         lineControl++;
         replaceSeperator(line);
         if (skipMode) {
-            printf("Error on line %d: Comment block opened with '*' but not closed before line break.\n", lineControl-1);
+            printf("Error on line %d: Comment block is not closed! \n", lineControl-1);
             exit(1);}
         if (strSkip) {
-            printf("Error on line %d: String literal opened with '“' but not closed with '”' before line break.\n", lineControl-1);
+            printf("Error on line %d: String block is not closed! \n", lineControl-1);
             exit(1);}
         char *token = strtok(line, " \t\n");
         while (token != NULL) {
 
-            if (strcmp(token, "*") == 0) { // * gelirse ignore ediyoruz
+            if (strcmp(token, "*") == 0) { //ignore comment lines
                 skipMode = !skipMode;
             }
             else if (!skipMode) {
@@ -164,7 +163,7 @@ int main(int argc, char *argv[]) {
                         exit(1);
                     }
 
-                }else if (strcmp(token, ";") == 0) { //burasi sayesinde ; dan sonra * i okuyabiliyoruz
+                }else if (strcmp(token, ";") == 0) { 
                     fprintf(outputFile,"EndOfLine\n");
                 }
                 else {
